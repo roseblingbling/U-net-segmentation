@@ -1,0 +1,75 @@
+校准曲线
+
+#####################################################
+# 加载必要的包
+library(rms)
+
+# 读取数据
+train_data <- read.csv("path1")
+test_data <- read.csv("path2")
+
+# 处理缺失值（用 0 填充）
+train_data[is.na(train_data)] <- 0
+test_data[is.na(test_data)] <- 0
+
+# 逻辑回归模型拟合
+glmFit <- glm(label ~ ., data = train_data, family = binomial)
+
+# 预测概率
+pHat <- predict(glmFit, newdata = train_data, type = "response")
+
+# 确保 test_data$label 存在并与 pHat 长度一致
+if (!"label" %in% colnames(train_data)) {
+  stop("Error: 'label' column not found in train_data")
+}
+
+labelTrain <- train_data$label  # 确保变量名正确
+
+# 检查数据是否匹配
+if (length(pHat) != length(labelTrain)) {
+  stop("Error: Lengths of predicted probabilities and true labels do not match")
+}
+
+# 绘制校准曲线
+calPerf <- val.prob.ci.2(pHat, labelTrain)
+
+##########################################################################DCA
+library(rmda)
+# 读取数据
+train_data <- read.csv("path")
+
+# 确保 label 变量为数值型
+train_data$label <- as.numeric(as.character(train_data$label))
+
+# 训练 Radiomics 特征模型
+model <- decision_curve(label ~ Feature1 + Feature2 + Feature3 + Feature4 + 
+                          Feature5 + Feature6 + Feature7+Feature8,
+                        family = binomial(link = 'logit'),
+                        data = train_data,
+                        thresholds = seq(0, 0.4, by = 0.005),
+                        bootstraps = 10)
+
+# 训练临床参数模型
+model.Clinic <- decision_curve(label ~ sex + age + arecanut + n_stage + 
+                                 t_stage + DOI+Feature1 + Feature2 + Feature3 + Feature4 + 
+                          Feature5 + Feature6 + Feature7,
+                               family = binomial(link = 'logit'),
+                               data = train_data,
+                               thresholds = seq(0, 0.4, by = 0.005),
+                               bootstraps = 10)
+
+
+
+plot_decision_curve(list(model, model.Clinic),
+curve.names = c("Radiomics model", "Signature model"),
+col = c("#3C5488B2", "#DC0000B2"),#设置线的颜色
+lty = c(1,2),  #  设置线形
+lwd = c(3,3, 2, 2),   #设置线宽，分别为baseling.model、full.model、All和None
+confidence.intervals = F,
+legend.position = "topright")
+
+plot_clinical_impact(model,
+xlim = c(0, .4),
+col = c("#3C5488B2", "#DC0000B2"))
+
+

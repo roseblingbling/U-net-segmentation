@@ -1,0 +1,186 @@
+# 安装并加载所需的包
+install.packages("pROC")  # 用于绘制ROC曲线
+library(pROC)
+library(glmnet)
+library(Matrix)
+
+# 加载数据集
+train_data <- read.csv("path_train")
+test_data <- read.csv("path_test")
+
+# 提取特征和标签
+# 假设标签列是 `label`，特征列是其余的列
+x_train <- train_data[, -which(names(train_data) == "label")]
+y_train <- train_data$label
+x_test <- test_data[, -which(names(test_data) == "label")]
+y_test <- test_data$label
+
+# 训练逻辑回归模型
+model <- glm(label ~ ., data = train_data, family = binomial)
+
+# 进行预测（训练集和测试集）
+predictions_train <- predict(model, newdata = train_data, type = "response")
+predictions_test <- predict(model, newdata = test_data, type = "response")
+
+# 计算ROC曲线
+roc_train <- roc(y_train, predictions_train)
+roc_test <- roc(y_test, predictions_test)
+
+# 绘制ROC曲线
+plot(roc_train, col = "red", lwd = 4, main = "ROC Curve for Training and Test Sets")
+lines(roc_test, col = "blue", lwd = 4)
+
+# 计算AUC
+auc_train <- auc(roc_train)
+auc_test <- auc(roc_test)
+
+# 添加图例
+legend("bottomright", 
+       legend = c(paste("Train (AUC = ", round(auc_train, 3), ")", sep = ""),
+                  paste("Test (AUC = ", round(auc_test, 3), ")", sep = "")),
+       col = c("red", "blue"), 
+       lwd = 4)
+
+# 输出AUC值
+cat("Train AUC:", auc_train, "\n")
+cat("Test AUC:", auc_test, "\n")
+
+
+##################################################
+library(pROC)
+library(rms)
+library(Hmisc)
+library(lattice)
+library(Formula)
+library(ggplot2)
+library(SparseM)
+library(Matrix)
+
+# 加载数据集
+train_data <- read.csv("path_train")
+test_data <- read.csv("path_test")
+
+# 提取特征和标签
+# 假设标签列是 `label`，特征列是其余的列
+x_train <- train_data[, -which(names(train_data) == "label")]
+y_train <- train_data$label
+x_test <- test_data[, -which(names(test_data) == "label")]
+y_test <- test_data$label
+
+# 训练逻辑回归模型
+model <- glm(label ~ ., data = train_data, family = binomial)
+
+# 进行预测（训练集和测试集）
+predictions_train <- predict(model, newdata = train_data, type = "response")
+predictions_test <- predict(model, newdata = test_data, type = "response")
+
+# 计算ROC曲线
+roc_train <- roc(y_train, predictions_train)
+roc_test <- roc(y_test, predictions_test)
+
+# 计算AUC
+auc_train <- auc(roc_train)
+auc_test <- auc(roc_test)
+
+# 绘制美化的ROC曲线
+g <- ggroc(list(Train = roc_train, Test = roc_test)) +
+  theme_minimal() +
+  ggtitle("ROC Curve for Training and Test Sets") +
+  scale_color_manual(values = c("orange", "blue"), 
+                     name = "Lymph node metastasis prediction",  # 修改图例标题
+                     labels = c(paste0("Train AUC = ", round(auc_train, 3)), 
+                                paste0("Test AUC = ", round(auc_test, 3)))) +
+  xlab("1 - Specificity") + 
+  ylab("Sensitivity") +
+  theme(legend.position = "right", 
+        legend.title = element_text(size = 10), 
+        legend.text = element_text(size = 9), 
+        legend.direction = "vertical")  # 设置图例垂直排列
+
+g
+
+# 输出AUC值
+cat("Train AUC:", auc_train, "\n")
+cat("Test AUC:", auc_test, "\n")
+
+
+#########################################计算相关指标
+
+library(pROC)
+library(caret)
+
+# 加载数据集
+train_data <- read.csv("path_train")
+test_data <- read.csv("path_test")
+
+# 确保标签是因子类型
+train_data$label <- as.factor(train_data$label)
+test_data$label <- as.factor(test_data$label)
+
+# 训练逻辑回归模型
+model <- glm(label ~ ., data = train_data, family = binomial)
+
+# 进行预测（概率值）
+predictions_train <- predict(model, newdata = train_data, type = "response")
+predictions_test <- predict(model, newdata = test_data, type = "response")
+
+# 将预测概率转换为类别（0.5 作为阈值）
+predicted_classes_train <- ifelse(predictions_train > 0.5, 1, 0)
+predicted_classes_test <- ifelse(predictions_test > 0.5, 1, 0)
+
+# 确保预测类别与实际标签类型一致
+predicted_classes_train <- factor(predicted_classes_train, levels = levels(train_data$label))
+predicted_classes_test <- factor(predicted_classes_test, levels = levels(test_data$label))
+
+# 计算混淆矩阵
+conf_matrix_train <- confusionMatrix(predicted_classes_train, train_data$label)
+conf_matrix_test <- confusionMatrix(predicted_classes_test, test_data$label)
+
+# 计算 ROC 和 AUC
+roc_train <- roc(train_data$label, predictions_train)
+roc_test <- roc(test_data$label, predictions_test)
+
+# 计算AUC及其95%置信区间
+auc_train <- auc(roc_train)
+auc_test <- auc(roc_test)
+
+# 计算95% CI
+ci_train <- ci(roc_train)
+ci_test <- ci(roc_test)
+
+# 输出 AUC 结果
+cat("\n==== 训练集 AUC ====\n")
+cat("AUC:", auc_train, "\n")
+cat("95% CI: [", ci_train[1], ",", ci_train[3], "]\n")
+
+cat("\n==== 测试集 AUC ====\n")
+cat("AUC:", auc_test, "\n")
+cat("95% CI: [", ci_test[1], ",", ci_test[3], "]\n")
+
+# 提取混淆矩阵的指标
+metrics_train <- conf_matrix_train$byClass
+metrics_test <- conf_matrix_test$byClass
+
+# 训练集评估指标
+cat("\n==== 训练集 评估指标 ====\n")
+cat("Accuracy:", conf_matrix_train$overall["Accuracy"], "\n")
+cat("Precision:", metrics_train["Precision"], "\n")
+cat("Recall:", metrics_train["Recall"], "\n")
+cat("F1 Score:", metrics_train["F1"], "\n")
+cat("Sensitivity:", metrics_train["Sensitivity"], "\n")
+cat("Specificity:", metrics_train["Specificity"], "\n")
+
+# 测试集评估指标
+cat("\n==== 测试集 评估指标 ====\n")
+cat("Accuracy:", conf_matrix_test$overall["Accuracy"], "\n")
+cat("Precision:", metrics_test["Precision"], "\n")
+cat("Recall:", metrics_test["Recall"], "\n")
+cat("F1 Score:", metrics_test["F1"], "\n")
+cat("Sensitivity:", metrics_test["Sensitivity"], "\n")
+cat("Specificity:", metrics_test["Specificity"], "\n")
+
+
+
+
+
+

@@ -1,1 +1,2 @@
 # U-net-segmentation
+#MedStack3D is a medical imaging processing tool designed to convert 2D slices (images and corresponding segmentation masks) into 3D volumetric data and save them in NIfTI format. It automatically matches images with masks, ensures consistent dimensions, and stacks them into volumetric data for further 3D medical analysis or deep learning tasks. The resulting NIfTI files can be used in medical imaging analysis software or machine learning models, facilitating more precise image processing and research.
